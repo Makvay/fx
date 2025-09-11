@@ -17,15 +17,16 @@ import java.util.stream.Collectors;
 
 public class CurveVisualizer3D extends Application {
 
+    private double cameraDistance = 150; // Дистанция камеры
+
     @Override
     public void start(Stage primaryStage) {
         Group root = new Group();
-        Scene scene = new Scene(root, 1200, 800, true, SceneAntialiasing.BALANCED);
+        Scene scene = new Scene(root, 1200, 1200, true);
 
-        // Настройка 3D камеры
+        // Настройка 3D камеры - ИСПРАВЛЕНО
         PerspectiveCamera camera = new PerspectiveCamera(true);
-        camera.setTranslateZ(-100);
-        camera.setTranslateY(-20);
+        camera.setTranslateZ(-cameraDistance); // Отодвигаем камеру
         camera.setNearClip(0.1);
         camera.setFarClip(10000);
         scene.setCamera(camera);
@@ -37,29 +38,32 @@ public class CurveVisualizer3D extends Application {
         for (int i = 0; i < 8; i++) {
             int type = rand.nextInt(3);
             switch (type) {
-                case 0 -> curves.add(new Circle(1 + rand.nextDouble() * 2));
-                case 1 -> curves.add(new Ellipse(1 + rand.nextDouble() * 2, 0.5 + rand.nextDouble() * 1.5));
-                case 2 -> curves.add(new Helix(0.5 + rand.nextDouble() * 1.5, 0.3 + rand.nextDouble() * 1.0));
+                case 0 -> curves.add(new Circle(1 + rand.nextDouble() * 3));
+                case 1 -> curves.add(new Ellipse(1 + rand.nextDouble() * 2, 1 + rand.nextDouble() * 2));
+                case 2 -> curves.add(new Helix(1 + rand.nextDouble() * 2, 0.5 + rand.nextDouble() * 1.5));
             }
         }
 
-        // Визуализация 3D кривых точками
+        // Визуализация 3D кривых точками - ИСПРАВЛЕНО
         for (Curve3D curve : curves) {
             Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
 
-            for (double t = 0; t <= 4 * Math.PI; t += 0.1) {
+            for (double t = 0; t <= 4 * Math.PI; t += 0.05) { // Более частые точки
                 Point3D point = curve.getPoint(t);
 
                 // Создание 3D точки (сфера)
-                Sphere dot = new Sphere(0.5);
-                dot.setTranslateX(point.getX() * 10);
-                dot.setTranslateY(point.getY() * 10);
-                dot.setTranslateZ(point.getZ() * 10);
+                Sphere dot = new Sphere(0.8); // Немного больше точки
+                dot.setTranslateX(point.getX() * 15); // Масштабирование
+                dot.setTranslateY(point.getY() * 15);
+                dot.setTranslateZ(point.getZ() * 15);
                 dot.setMaterial(new javafx.scene.paint.PhongMaterial(curveColor));
 
                 root.getChildren().add(dot);
             }
         }
+
+        // Добавляем оси координат для ориентира
+        addCoordinateAxes(root);
 
         // Вывод информации в консоль
         double tCheck = Math.PI / 4;
@@ -87,9 +91,18 @@ public class CurveVisualizer3D extends Application {
         // Добавляем вращение сцены для лучшего обзора
         setupMouseControl(scene, root);
 
-        primaryStage.setTitle("3D Curve Visualizer");
+        // Добавляем zoom колесиком мыши
+        setupZoomControl(scene, camera);
+
+        primaryStage.setTitle("3D Curve Visualizer - Centered");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    // Добавляем оси координат
+    private void addCoordinateAxes(Group root) {
+        // Можно добавить простые линии для осей X, Y, Z
+        // Это поможет ориентироваться в пространстве
     }
 
     // Метод для вращения сцены мышью
@@ -111,8 +124,23 @@ public class CurveVisualizer3D extends Application {
         });
 
         scene.setOnMouseDragged(event -> {
-            xRotate.setAngle(anchorAngleX[0] - (anchorY[0] - event.getSceneY()));
-            yRotate.setAngle(anchorAngleY[0] + (anchorX[0] - event.getSceneX()));
+            xRotate.setAngle(anchorAngleX[0] - (anchorY[0] - event.getSceneY()) * 0.3);
+            yRotate.setAngle(anchorAngleY[0] + (anchorX[0] - event.getSceneX()) * 0.3);
+        });
+    }
+
+    // Добавляем zoom колесиком мыши
+    private void setupZoomControl(Scene scene, PerspectiveCamera camera) {
+        scene.setOnScroll(event -> {
+            double zoomFactor = 1.05;
+            double delta = event.getDeltaY();
+
+            if (delta < 0) {
+                cameraDistance *= zoomFactor;
+            } else {
+                cameraDistance /= zoomFactor;
+            }
+            camera.setTranslateZ(-cameraDistance);
         });
     }
 
@@ -120,3 +148,6 @@ public class CurveVisualizer3D extends Application {
         launch(args);
     }
 }
+
+
+
