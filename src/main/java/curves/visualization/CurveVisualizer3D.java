@@ -4,9 +4,12 @@ import curves.Circle;
 import curves.Curve3D;
 import curves.Ellipse;
 import curves.Helix;
-import javafx.application.Application;
 import javafx.geometry.Point3D;
-import javafx.scene.*;
+import javafx.scene.Group;
+import javafx.scene.PerspectiveCamera;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
@@ -15,26 +18,59 @@ import javafx.stage.Stage;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class CurveVisualizer3D extends Application {
+public class CurveVisualizer3D {
+    private Stage stage;
+    private double cameraDistance = 250;
+    private Group root;
+    private List<Curve3D> curves;
 
-    private double cameraDistance = 150; // Дистанция камеры
+    public CurveVisualizer3D() {
+        this.stage = new Stage();
+        this.curves = generateRandomCurves();
+    }
 
-    @Override
-    public void start(Stage primaryStage) {
-        Group root = new Group();
-        Scene scene = new Scene(root, 1200, 1200, true);
+    public void showVisualization() {
+        stage.setTitle("3D Curve Visualizer");
 
-        // Настройка 3D камеры - ИСПРАВЛЕНО
+        root = new Group();
+        Scene scene = new Scene(root, 1200, 800, true);
+
+        // Настройка 3D камеры
         PerspectiveCamera camera = new PerspectiveCamera(true);
-        camera.setTranslateZ(-cameraDistance); // Отодвигаем камеру
+        camera.setTranslateZ(-cameraDistance);
         camera.setNearClip(0.1);
         camera.setFarClip(10000);
         scene.setCamera(camera);
 
+        // Визуализация 3D кривых точками
+        visualizeCurves();
+
+        // Добавляем оси координат
+        addCoordinateAxes(root);
+
+        // Настройка управления
+        setupMouseControl(scene, root);
+        setupZoomControl(scene, camera);
+
+        // Добавляем кнопку возврата
+        Button backButton = new Button("Back to Main");
+        backButton.setOnAction(e -> stage.close());
+
+        BorderPane mainPane = new BorderPane();
+        mainPane.setCenter(root);
+        mainPane.setTop(backButton);
+
+        Scene finalScene = new Scene(mainPane, 1200, 800, true);
+        finalScene.setCamera(camera);
+
+        stage.setScene(finalScene);
+        stage.show();
+    }
+
+    private List<Curve3D> generateRandomCurves() {
         Random rand = new Random();
         List<Curve3D> curves = new ArrayList<>();
 
-        // Создание случайных кривых
         for (int i = 0; i < 8; i++) {
             int type = rand.nextInt(3);
             switch (type) {
@@ -43,17 +79,19 @@ public class CurveVisualizer3D extends Application {
                 case 2 -> curves.add(new Helix(1 + rand.nextDouble() * 2, 0.5 + rand.nextDouble() * 1.5));
             }
         }
+        return curves;
+    }
 
-        // Визуализация 3D кривых точками - ИСПРАВЛЕНО
+    private void visualizeCurves() {
+        Random rand = new Random();
         for (Curve3D curve : curves) {
             Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
 
-            for (double t = 0; t <= 4 * Math.PI; t += 0.05) { // Более частые точки
+            for (double t = 0; t <= 4 * Math.PI; t += 0.05) {
                 Point3D point = curve.getPoint(t);
 
-                // Создание 3D точки (сфера)
-                Sphere dot = new Sphere(0.8); // Немного больше точки
-                dot.setTranslateX(point.getX() * 15); // Масштабирование
+                Sphere dot = new Sphere(0.8);
+                dot.setTranslateX(point.getX() * 15);
                 dot.setTranslateY(point.getY() * 15);
                 dot.setTranslateZ(point.getZ() * 15);
                 dot.setMaterial(new javafx.scene.paint.PhongMaterial(curveColor));
@@ -61,42 +99,10 @@ public class CurveVisualizer3D extends Application {
                 root.getChildren().add(dot);
             }
         }
+    }
 
-        // Добавляем оси координат для ориентира
-        addCoordinateAxes(root);
-
-        // Вывод информации в консоль
-        double tCheck = Math.PI / 4;
-        System.out.println("Points and derivatives at t=PI/4:");
-        for (Curve3D curve : curves) {
-            System.out.println(curve.getClass().getSimpleName() +
-                    " Point: " + curve.getPoint(tCheck) +
-                    " Derivative: " + curve.getDerivative(tCheck));
-        }
-
-        // Обработка кругов
-        List<Circle> circles = curves.stream()
-                .filter(c -> c instanceof Circle)
-                .map(c -> (Circle)c)
-                .sorted(Comparator.comparingDouble(Circle::getRadius))
-                .collect(Collectors.toList());
-
-        double sumRadii = circles.stream().mapToDouble(Circle::getRadius).sum();
-        System.out.println("Sorted circles by radius:");
-        for (Circle c : circles) {
-            System.out.println("Circle radius: " + c.getRadius());
-        }
-        System.out.println("Total sum of radii: " + sumRadii);
-
-        // Добавляем вращение сцены для лучшего обзора
-        setupMouseControl(scene, root);
-
-        // Добавляем zoom колесиком мыши
-        setupZoomControl(scene, camera);
-
-        primaryStage.setTitle("3D Curve Visualizer - Centered");
-        primaryStage.setScene(scene);
-        primaryStage.show();
+    public List<Curve3D> getCurves() {
+        return curves;
     }
 
     // Добавляем оси координат
@@ -143,11 +149,4 @@ public class CurveVisualizer3D extends Application {
             camera.setTranslateZ(-cameraDistance);
         });
     }
-
-    public static void main(String[] args) {
-        launch(args);
-    }
 }
-
-
-
