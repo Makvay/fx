@@ -12,9 +12,8 @@ import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Sphere;
@@ -29,8 +28,6 @@ public class MainApplication extends Application {
     private double cameraDistance = 25;
     private List<Curve3D> curves;
     private Group visualizationRoot;
-    private PerspectiveCamera camera;
-    private TabPane tabPane;
     private Rotate xRotate;
     private Rotate yRotate;
 
@@ -42,7 +39,7 @@ public class MainApplication extends Application {
         curves = generateRandomCurves();
 
         // Создаем TabPane для переключения между страницами
-        tabPane = new TabPane();
+        TabPane tabPane = new TabPane();
 
         // Создаем вкладки
         Tab visualizationTab = new Tab("3D Visualization", createVisualizationContent());
@@ -88,13 +85,16 @@ public class MainApplication extends Application {
         Group3DContainer group3DContainer = new Group3DContainer(visualizationRoot);
 
         // Настройка 3D камеры
-        camera = new PerspectiveCamera(true);
+        PerspectiveCamera camera = new PerspectiveCamera(true);
         camera.setTranslateZ(-cameraDistance);
         camera.setNearClip(0.1);
         camera.setFarClip(10000);
 
-        // Визуализация кривых
-        visualizeCurves();
+        // Создаем кнопки для выбора фигур
+        HBox buttonContainer = createCurveSelectionButtons();
+
+        // Визуализация - по умолчанию показываем только спирали
+        showCurvesByType("Helix");
 
 //        // Добавляем оси координат
         addCoordinateAxes(visualizationRoot);
@@ -104,28 +104,67 @@ public class MainApplication extends Application {
         setupZoomControl(group3DContainer, camera);
 
         visualizationPane.setCenter(group3DContainer);
+        visualizationPane.setBottom(buttonContainer);
 
         return visualizationPane;
     }
 
-    private void visualizeCurves() {
+    private HBox createCurveSelectionButtons() {
+        HBox buttonBox = new HBox(10);
+        buttonBox.setPadding(new Insets(10));
+        buttonBox.setStyle("-fx-alignment: center;");
+
+
+        ToggleButton allButton = new ToggleButton("All Curves");
+        ToggleButton circleButton = new ToggleButton("Circles");
+        ToggleButton ellipseButton = new ToggleButton("Ellipses");
+        ToggleButton helixButton = new ToggleButton("Helixes");
+
+
+        // По умолчанию выбираем спирали
+        helixButton.setSelected(true);
+
+        // Обработчики событий для кнопок
+        allButton.setOnAction(e -> showCurvesByType("All"));
+        circleButton.setOnAction(e -> showCurvesByType("Circle"));
+        ellipseButton.setOnAction(e -> showCurvesByType("Ellipse"));
+        helixButton.setOnAction(e -> showCurvesByType("Helix"));
+
+        buttonBox.getChildren().addAll(allButton, circleButton, ellipseButton, helixButton);
+        return buttonBox;
+    }
+
+    private void showCurvesByType(String curveType) {
+        // Очищаем сцену
+        visualizationRoot.getChildren().clear();
+
+        // Добавляем оси координат обратно
+        addCoordinateAxes(visualizationRoot);
+
         Random rand = new Random();
+
         for (Curve3D curve : curves) {
-            Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
+            String className = curve.getClass().getSimpleName();
 
-            for (double t = 0; t <= 4 * Math.PI; t += 0.05) {
-                Point3D point = curve.getPoint(t);
+            // Фильтруем кривые по типу
+            if ("All".equals(curveType) || className.equals(curveType)) {
+                Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
 
-                Sphere dot = new Sphere(0.8);
-                dot.setTranslateX(point.getX() * 15);
-                dot.setTranslateY(point.getY() * 15);
-                dot.setTranslateZ(point.getZ() * 15);
-                dot.setMaterial(new javafx.scene.paint.PhongMaterial(curveColor));
+                for (double t = 0; t <= 4 * Math.PI; t += 0.05) {
+                    Point3D point = curve.getPoint(t);
 
-                visualizationRoot.getChildren().add(dot);
+                    Sphere dot = new Sphere(0.8);
+                    dot.setTranslateX(point.getX() * 15);
+                    dot.setTranslateY(point.getY() * 15);
+                    dot.setTranslateZ(point.getZ() * 15);
+                    dot.setMaterial(new javafx.scene.paint.PhongMaterial(curveColor));
+
+                    visualizationRoot.getChildren().add(dot);
+                }
             }
         }
     }
+
 
     // ИСПРАВЛЕННЫЙ МЕТОД для вращения сцены мышью
     private void setupMouseControl(Group3DContainer container, Group root) {
