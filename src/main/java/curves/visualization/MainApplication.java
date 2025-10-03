@@ -10,8 +10,10 @@ import javafx.geometry.Point3D;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
+import javafx.scene.SubScene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -25,9 +27,10 @@ import java.util.stream.Collectors;
 
 public class MainApplication extends Application {
 
-    private double cameraDistance = 25;
+    private double cameraDistance = 200;
     private List<Curve3D> curves;
     private Group visualizationRoot;
+    private PerspectiveCamera camera;
     private Rotate xRotate;
     private Rotate yRotate;
 
@@ -81,14 +84,19 @@ public class MainApplication extends Application {
         // Создаем корневую группу для 3D сцены
         visualizationRoot = new Group();
 
-        // Создаем специальную панель для 3D контента с обработкой событий
-        Group3DContainer group3DContainer = new Group3DContainer(visualizationRoot);
-
         // Настройка 3D камеры
-        PerspectiveCamera camera = new PerspectiveCamera(true);
+        camera = new PerspectiveCamera(true);
         camera.setTranslateZ(-cameraDistance);
         camera.setNearClip(0.1);
         camera.setFarClip(10000);
+
+        // Создаем SubScene для 3D контента
+        SubScene subScene = new SubScene(visualizationRoot, 1200, 700);
+        subScene.setCamera(camera);
+        subScene.setFill(Color.WHITESMOKE);
+
+        // Создаем специальную панель для 3D контента с обработкой событий
+        Group3DContainer group3DContainer = new Group3DContainer(subScene);
 
         // Создаем кнопки для выбора фигур
         HBox buttonContainer = createCurveSelectionButtons();
@@ -96,12 +104,12 @@ public class MainApplication extends Application {
         // Визуализация - по умолчанию показываем только спирали
         showCurvesByType("Helix");
 
-//        // Добавляем оси координат
+        // Добавляем оси координат
         addCoordinateAxes(visualizationRoot);
 
-        // Настройка управления - передаем контейнер вместо сцены
+        // Настройка управления
         setupMouseControl(group3DContainer, visualizationRoot);
-        setupZoomControl(group3DContainer, camera);
+        setupZoomControl(group3DContainer);
 
         visualizationPane.setCenter(group3DContainer);
         visualizationPane.setBottom(buttonContainer);
@@ -114,12 +122,10 @@ public class MainApplication extends Application {
         buttonBox.setPadding(new Insets(10));
         buttonBox.setStyle("-fx-alignment: center;");
 
-
         ToggleButton allButton = new ToggleButton("All Curves");
         ToggleButton circleButton = new ToggleButton("Circles");
         ToggleButton ellipseButton = new ToggleButton("Ellipses");
         ToggleButton helixButton = new ToggleButton("Helixes");
-
 
         // По умолчанию выбираем спирали
         helixButton.setSelected(true);
@@ -165,8 +171,7 @@ public class MainApplication extends Application {
         }
     }
 
-
-    // ИСПРАВЛЕННЫЙ МЕТОД для вращения сцены мышью
+    // Метод для вращения сцены мышью
     private void setupMouseControl(Group3DContainer container, Group root) {
         xRotate = new Rotate(0, Rotate.X_AXIS);
         yRotate = new Rotate(0, Rotate.Y_AXIS);
@@ -192,17 +197,23 @@ public class MainApplication extends Application {
         });
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД для zoom колесиком мыши
-    private void setupZoomControl(Group3DContainer container, PerspectiveCamera camera) {
-        container.setOnScroll(event -> {
+    // Метод для zoom колесиком мыши
+    private void setupZoomControl(Group3DContainer container) {
+        container.setOnScroll((ScrollEvent event) -> {
             double zoomFactor = 1.05;
             double delta = event.getDeltaY();
 
             if (delta < 0) {
+                // Отдаление
                 cameraDistance *= zoomFactor;
             } else {
+                // Приближение
                 cameraDistance /= zoomFactor;
             }
+
+            // Ограничиваем минимальное и максимальное расстояние камеры
+            cameraDistance = Math.max(10, Math.min(500, cameraDistance));
+
             camera.setTranslateZ(-cameraDistance);
             event.consume();
         });
@@ -310,19 +321,19 @@ public class MainApplication extends Application {
 
     // Специальный контейнер для 3D контента с обработкой событий
     private static class Group3DContainer extends BorderPane {
-        private final Group content;
+        private final SubScene subScene;
 
-        public Group3DContainer(Group content) {
-            this.content = content;
-            setCenter(content);
+        public Group3DContainer(SubScene subScene) {
+            this.subScene = subScene;
+            setCenter(subScene);
             setStyle("-fx-background-color: transparent;");
 
             // Включаем события мыши
             setPickOnBounds(true);
         }
 
-        public Group getContent() {
-            return content;
+        public SubScene getSubScene() {
+            return subScene;
         }
     }
 
