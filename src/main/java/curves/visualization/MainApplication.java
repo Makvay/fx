@@ -1,7 +1,10 @@
 package curves.visualization;
 
 import curves.*;
-
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -21,9 +24,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
 
 public class MainApplication extends Application {
 
@@ -36,28 +41,27 @@ public class MainApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+//        System.out.println("=== Curve Analyzer v1.0 ===");
+
         primaryStage.setTitle("3D Curve Analyzer");
 
         // Генерируем кривые
         curves = generateRandomCurves();
 
-        // Создаем TabPane для переключения между страницами
-        TabPane tabPane = new TabPane();
+        System.out.println("Generated " + curves.size() + " curves:");
+        for (Curve3D c : curves)
+            System.out.println(" - " + c.getClass().getSimpleName());
 
-        // Создаем вкладки
+        // Создаем TabPane
+        TabPane tabPane = new TabPane();
         Tab visualizationTab = new Tab("3D Visualization", createVisualizationContent());
         Tab calculationsTab = new Tab("Calculations", createCalculationsContent());
-
-        // Делаем вкладки не закрываемыми
         visualizationTab.setClosable(false);
         calculationsTab.setClosable(false);
 
         tabPane.getTabs().addAll(visualizationTab, calculationsTab);
 
-        // Основной layout
-        BorderPane mainLayout = new BorderPane();
-        mainLayout.setCenter(tabPane);
-
+        BorderPane mainLayout = new BorderPane(tabPane);
         Scene scene = new Scene(mainLayout, 1200, 800);
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -66,7 +70,6 @@ public class MainApplication extends Application {
     private List<Curve3D> generateRandomCurves() {
         Random rand = new Random();
         List<Curve3D> curves = new ArrayList<>();
-
         for (int i = 0; i < 8; i++) {
             int type = rand.nextInt(3);
             switch (type) {
@@ -81,39 +84,64 @@ public class MainApplication extends Application {
     private BorderPane createVisualizationContent() {
         BorderPane visualizationPane = new BorderPane();
 
-        // Создаем корневую группу для 3D сцены
         visualizationRoot = new Group();
 
-        // Настройка 3D камеры
+        // Настройка камеры
         camera = new PerspectiveCamera(true);
         camera.setTranslateZ(-cameraDistance);
         camera.setNearClip(0.1);
         camera.setFarClip(10000);
 
-        // Создаем SubScene для 3D контента
         SubScene subScene = new SubScene(visualizationRoot, 1200, 700);
         subScene.setCamera(camera);
         subScene.setFill(Color.WHITESMOKE);
 
-        // Создаем специальную панель для 3D контента с обработкой событий
         Group3DContainer group3DContainer = new Group3DContainer(subScene);
 
-        // Создаем кнопки для выбора фигур
         HBox buttonContainer = createCurveSelectionButtons();
 
-        // Визуализация - по умолчанию показываем только спирали
+        // Подсказка управления
+        Label hint = new Label("💡 Hold left mouse button to rotate, scroll to zoom");
+        hint.setStyle("-fx-text-fill: gray; -fx-font-size: 12px; -fx-alignment: center;");
+        visualizationPane.setTop(hint);
+        BorderPane.setMargin(hint, new Insets(5, 0, 0, 0));
+
+        // По умолчанию показываем спирали
         showCurvesByType("Helix");
 
-        // Добавляем оси координат
+        // Добавляем оси координат (опционально)
         addCoordinateAxes(visualizationRoot);
 
         // Настройка управления
         setupMouseControl(group3DContainer, visualizationRoot);
         setupZoomControl(group3DContainer);
 
-        visualizationPane.setCenter(group3DContainer);
-        visualizationPane.setBottom(buttonContainer);
+        //  Выбор фона
+        ColorPicker bgPicker = new ColorPicker(Color.WHITESMOKE);
+        bgPicker.setOnAction(e -> subScene.setFill(bgPicker.getValue()));
+        buttonContainer.getChildren().add(bgPicker);
 
+        // Информация о количестве кривых
+        Label infoLabel = new Label("Curves loaded: " + curves.size());
+        infoLabel.setStyle("-fx-font-size: 12px;");
+
+        VBox bottomBox = new VBox(buttonContainer, infoLabel);
+        bottomBox.setPadding(new Insets(5));
+        visualizationPane.setBottom(bottomBox);
+
+        // ⚙️ Плавное вращение сцены (анимация)
+        xRotate = new Rotate(0, Rotate.X_AXIS);
+        yRotate = new Rotate(0, Rotate.Y_AXIS);
+        visualizationRoot.getTransforms().addAll(xRotate, yRotate);
+
+        Timeline rotation = new Timeline(
+                new KeyFrame(Duration.seconds(0), new KeyValue(yRotate.angleProperty(), 0)),
+                new KeyFrame(Duration.seconds(30), new KeyValue(yRotate.angleProperty(), 360))
+        );
+        rotation.setCycleCount(Animation.INDEFINITE);
+        rotation.play();
+
+        visualizationPane.setCenter(group3DContainer);
         return visualizationPane;
     }
 
@@ -127,10 +155,14 @@ public class MainApplication extends Application {
         ToggleButton ellipseButton = new ToggleButton("Ellipses");
         ToggleButton helixButton = new ToggleButton("Helixes");
 
-        // По умолчанию выбираем спирали
+        ToggleGroup group = new ToggleGroup();
+        allButton.setToggleGroup(group);
+        circleButton.setToggleGroup(group);
+        ellipseButton.setToggleGroup(group);
+        helixButton.setToggleGroup(group);
+
         helixButton.setSelected(true);
 
-        // Обработчики событий для кнопок
         allButton.setOnAction(e -> showCurvesByType("All"));
         circleButton.setOnAction(e -> showCurvesByType("Circle"));
         ellipseButton.setOnAction(e -> showCurvesByType("Ellipse"));
@@ -141,41 +173,33 @@ public class MainApplication extends Application {
     }
 
     private void showCurvesByType(String curveType) {
-        // Очищаем сцену
         visualizationRoot.getChildren().clear();
-
-        // Добавляем оси координат обратно
         addCoordinateAxes(visualizationRoot);
 
         Random rand = new Random();
-
         for (Curve3D curve : curves) {
             String className = curve.getClass().getSimpleName();
-
-            // Фильтруем кривые по типу
             if ("All".equals(curveType) || className.equals(curveType)) {
                 Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
-
                 for (double t = 0; t <= 4 * Math.PI; t += 0.05) {
                     Point3D point = curve.getPoint(t);
-
                     Sphere dot = new Sphere(0.8);
                     dot.setTranslateX(point.getX() * 15);
                     dot.setTranslateY(point.getY() * 15);
                     dot.setTranslateZ(point.getZ() * 15);
                     dot.setMaterial(new javafx.scene.paint.PhongMaterial(curveColor));
-
                     visualizationRoot.getChildren().add(dot);
                 }
             }
         }
     }
 
-    // Метод для вращения сцены мышью
     private void setupMouseControl(Group3DContainer container, Group root) {
-        xRotate = new Rotate(0, Rotate.X_AXIS);
-        yRotate = new Rotate(0, Rotate.Y_AXIS);
-        root.getTransforms().addAll(xRotate, yRotate);
+        if (xRotate == null || yRotate == null) {
+            xRotate = new Rotate(0, Rotate.X_AXIS);
+            yRotate = new Rotate(0, Rotate.Y_AXIS);
+            root.getTransforms().addAll(xRotate, yRotate);
+        }
 
         final double[] anchorX = new double[1];
         final double[] anchorY = new double[1];
@@ -197,23 +221,15 @@ public class MainApplication extends Application {
         });
     }
 
-    // Метод для zoom колесиком мыши
     private void setupZoomControl(Group3DContainer container) {
         container.setOnScroll((ScrollEvent event) -> {
             double zoomFactor = 1.05;
             double delta = event.getDeltaY();
 
-            if (delta < 0) {
-                // Отдаление
-                cameraDistance *= zoomFactor;
-            } else {
-                // Приближение
-                cameraDistance /= zoomFactor;
-            }
+            if (delta < 0) cameraDistance *= zoomFactor;
+            else cameraDistance /= zoomFactor;
 
-            // Ограничиваем минимальное и максимальное расстояние камеры
             cameraDistance = Math.max(10, Math.min(500, cameraDistance));
-
             camera.setTranslateZ(-cameraDistance);
             event.consume();
         });
@@ -223,18 +239,13 @@ public class MainApplication extends Application {
         VBox calculationsPane = new VBox(10);
         calculationsPane.setPadding(new Insets(10));
 
-        // Заголовок
         Label titleLabel = new Label("Curve Calculations at t=π/4");
         titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-        // Таблица с точками и производными
         TableView<CalculationResult> table = createResultsTable();
-
-        // Информация о кругах
         VBox circlesInfo = createCirclesInfo();
 
         calculationsPane.getChildren().addAll(titleLabel, table, circlesInfo);
-
         return calculationsPane;
     }
 
@@ -242,7 +253,6 @@ public class MainApplication extends Application {
         TableView<CalculationResult> table = new TableView<>();
         double tCheck = Math.PI / 4;
 
-        // Создаем колонки
         TableColumn<CalculationResult, String> typeCol = new TableColumn<>("Type");
         typeCol.setCellValueFactory(new PropertyValueFactory<>("type"));
 
@@ -254,7 +264,6 @@ public class MainApplication extends Application {
 
         table.getColumns().addAll(typeCol, pointCol, derivativeCol);
 
-        // Заполняем таблицу данными
         ObservableList<CalculationResult> data = FXCollections.observableArrayList();
         for (Curve3D curve : curves) {
             data.add(new CalculationResult(
@@ -276,7 +285,6 @@ public class MainApplication extends Application {
         Label circlesTitle = new Label("Circle Information:");
         circlesTitle.setStyle("-fx-font-weight: bold;");
 
-        // Фильтруем круги и сортируем по радиусу
         List<Circle> circles = curves.stream()
                 .filter(c -> c instanceof Circle)
                 .map(c -> (Circle) c)
@@ -286,9 +294,8 @@ public class MainApplication extends Application {
         double sumRadii = circles.stream().mapToDouble(Circle::getRadius).sum();
 
         StringBuilder circlesText = new StringBuilder("Sorted circles by radius:\n");
-        for (Circle c : circles) {
+        for (Circle c : circles)
             circlesText.append(String.format("Circle radius: %.2f\n", c.getRadius()));
-        }
         circlesText.append(String.format("\nTotal sum of radii: %.2f", sumRadii));
 
         Label circlesLabel = new Label(circlesText.toString());
@@ -299,10 +306,9 @@ public class MainApplication extends Application {
     }
 
     private void addCoordinateAxes(Group root) {
-        // Реализация осей координат (можно оставить пустым или добавить позже)
+        // При желании можно добавить визуальные оси X, Y, Z
     }
 
-    // Вспомогательный класс для отображения данных в таблице
     public static class CalculationResult {
         private final String type;
         private final String point;
@@ -314,20 +320,11 @@ public class MainApplication extends Application {
             this.derivative = derivative;
         }
 
-        public String getType() {
-            return type;
-        }
-
-        public String getPoint() {
-            return point;
-        }
-
-        public String getDerivative() {
-            return derivative;
-        }
+        public String getType() { return type; }
+        public String getPoint() { return point; }
+        public String getDerivative() { return derivative; }
     }
 
-    // Специальный контейнер для 3D контента с обработкой событий
     private static class Group3DContainer extends BorderPane {
         private final SubScene subScene;
 
@@ -335,8 +332,6 @@ public class MainApplication extends Application {
             this.subScene = subScene;
             setCenter(subScene);
             setStyle("-fx-background-color: transparent;");
-
-            // Включаем события мыши
             setPickOnBounds(true);
         }
 
