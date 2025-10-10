@@ -314,9 +314,17 @@ public class MainApplication extends Application {
             this.derivative = derivative;
         }
 
-        public String getType() { return type; }
-        public String getPoint() { return point; }
-        public String getDerivative() { return derivative; }
+        public String getType() {
+            return type;
+        }
+
+        public String getPoint() {
+            return point;
+        }
+
+        public String getDerivative() {
+            return derivative;
+        }
     }
 
     // Специальный контейнер для 3D контента с обработкой событий
