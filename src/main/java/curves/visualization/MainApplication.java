@@ -129,7 +129,7 @@ public class MainApplication extends Application {
         bottomBox.setPadding(new Insets(5));
         visualizationPane.setBottom(bottomBox);
 
-        // ⚙️ Плавное вращение сцены (анимация)
+        //  Плавное вращение сцены (анимация)
         xRotate = new Rotate(0, Rotate.X_AXIS);
         yRotate = new Rotate(0, Rotate.Y_AXIS);
         visualizationRoot.getTransforms().addAll(xRotate, yRotate);
@@ -306,7 +306,37 @@ public class MainApplication extends Application {
     }
 
     private void addCoordinateAxes(Group root) {
-        // При желании можно добавить визуальные оси X, Y, Z
+        final double axisLength = 100;
+
+
+        javafx.scene.shape.Line xAxis = new javafx.scene.shape.Line();
+        xAxis.setStroke(Color.RED);
+        xAxis.setStrokeWidth(1);
+
+
+        javafx.scene.shape.Line yAxis = new javafx.scene.shape.Line();
+        yAxis.setStroke(Color.GREEN);
+        yAxis.setStrokeWidth(1);
+
+
+        javafx.scene.shape.Line zAxis = new javafx.scene.shape.Line();
+        zAxis.setStroke(Color.BLUE);
+        zAxis.setStrokeWidth(1);
+
+
+        javafx.scene.text.Text xLabel = new javafx.scene.text.Text("X");
+        xLabel.setFill(Color.RED);
+        xLabel.setTranslateX(axisLength);
+
+        javafx.scene.text.Text yLabel = new javafx.scene.text.Text("Y");
+        yLabel.setFill(Color.GREEN);
+        yLabel.setTranslateY(axisLength);
+
+        javafx.scene.text.Text zLabel = new javafx.scene.text.Text("Z");
+        zLabel.setFill(Color.BLUE);
+        zLabel.setTranslateZ(axisLength );
+
+        root.getChildren().addAll(xAxis, yAxis, zAxis, xLabel, yLabel, zLabel);
     }
 
     public static class CalculationResult {
