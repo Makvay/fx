@@ -3,7 +3,7 @@ package curves;
 import javafx.geometry.Point3D;
 
 public class Helix extends Curve3D {
-    private double radius, step;
+    private final double radius, step;
 
     public Helix(double radius, double step) {
         if (radius <= 0) throw new IllegalArgumentException("Radius must be positive");

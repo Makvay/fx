@@ -41,7 +41,7 @@ public class MainApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-//        System.out.println("=== Curve Analyzer v1.0 ===");
+        System.out.println("=== Curve Analyzer v1.0 ===");
 
         primaryStage.setTitle("3D Curve Analyzer");
 
@@ -153,7 +153,7 @@ public class MainApplication extends Application {
         ToggleButton allButton = new ToggleButton("All Curves");
         ToggleButton circleButton = new ToggleButton("Circles");
         ToggleButton ellipseButton = new ToggleButton("Ellipses");
-        ToggleButton helixButton = new ToggleButton("Helixes");
+        ToggleButton helixButton = new ToggleButton("Helix's");
 
         ToggleGroup group = new ToggleGroup();
         allButton.setToggleGroup(group);
@@ -319,7 +319,6 @@ public class MainApplication extends Application {
             this.point = point;
             this.derivative = derivative;
         }
-
         public String getType() { return type; }
         public String getPoint() { return point; }
         public String getDerivative() { return derivative; }

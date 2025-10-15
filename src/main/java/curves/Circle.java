@@ -3,7 +3,7 @@ package curves;
 import javafx.geometry.Point3D;
 
 public class Circle extends Curve3D {
-    private double radius;
+    private final double radius;
 
     public Circle(double radius) {
         if (radius <= 0) throw new IllegalArgumentException("Радиус должен быть положительным");

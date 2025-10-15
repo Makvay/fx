@@ -3,7 +3,7 @@ package curves;
 import javafx.geometry.Point3D;
 
 public class Ellipse extends Curve3D {
-    private double radiusX, radiusY;
+    private final double radiusX, radiusY;
 
     public Ellipse(double radiusX, double radiusY) {
         if (radiusX <= 0 || radiusY <= 0) throw new IllegalArgumentException("Radii must be positive");
