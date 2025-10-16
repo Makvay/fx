@@ -138,7 +138,6 @@ public class MainApplication extends Application {
 
     private void toggleSceneAnimation() {
         if (rotationTimeline == null) {
-            // Создаем анимацию только при первом вызове
             xRotate = new Rotate(0, Rotate.X_AXIS);
             yRotate = new Rotate(0, Rotate.Y_AXIS);
             visualizationRoot.getTransforms().addAll(xRotate, yRotate);
@@ -340,17 +339,17 @@ public class MainApplication extends Application {
 
         javafx.scene.shape.Line xAxis = new javafx.scene.shape.Line();
         xAxis.setStroke(Color.RED);
-        xAxis.setStrokeWidth(1);
+        xAxis.setStrokeWidth(0);
 
 
         javafx.scene.shape.Line yAxis = new javafx.scene.shape.Line();
         yAxis.setStroke(Color.GREEN);
-        yAxis.setStrokeWidth(1);
+        yAxis.setStrokeWidth(0);
 
 
         javafx.scene.shape.Line zAxis = new javafx.scene.shape.Line();
         zAxis.setStroke(Color.BLUE);
-        zAxis.setStrokeWidth(1);
+        zAxis.setStrokeWidth(0);
 
 
         javafx.scene.text.Text xLabel = new javafx.scene.text.Text("X");
