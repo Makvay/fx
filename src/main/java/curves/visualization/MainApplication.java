@@ -38,6 +38,8 @@ public class MainApplication extends Application {
     private PerspectiveCamera camera;
     private Rotate xRotate;
     private Rotate yRotate;
+    private Timeline rotationTimeline;
+    private boolean isAnimating = false;
 
     @Override
     public void start(Stage primaryStage) {
@@ -129,20 +131,34 @@ public class MainApplication extends Application {
         bottomBox.setPadding(new Insets(5));
         visualizationPane.setBottom(bottomBox);
 
-        //  Плавное вращение сцены (анимация)
-        xRotate = new Rotate(0, Rotate.X_AXIS);
-        yRotate = new Rotate(0, Rotate.Y_AXIS);
-        visualizationRoot.getTransforms().addAll(xRotate, yRotate);
-
-        Timeline rotation = new Timeline(
-                new KeyFrame(Duration.seconds(0), new KeyValue(yRotate.angleProperty(), 0)),
-                new KeyFrame(Duration.seconds(30), new KeyValue(yRotate.angleProperty(), 360))
-        );
-        rotation.setCycleCount(Animation.INDEFINITE);
-        rotation.play();
 
         visualizationPane.setCenter(group3DContainer);
         return visualizationPane;
+    }
+
+    private void toggleSceneAnimation() {
+        if (rotationTimeline == null) {
+            // Создаем анимацию только при первом вызове
+            xRotate = new Rotate(0, Rotate.X_AXIS);
+            yRotate = new Rotate(0, Rotate.Y_AXIS);
+            visualizationRoot.getTransforms().addAll(xRotate, yRotate);
+
+            rotationTimeline = new Timeline(
+                    new KeyFrame(Duration.seconds(0), new KeyValue(yRotate.angleProperty(), 0)),
+                    new KeyFrame(Duration.seconds(30), new KeyValue(yRotate.angleProperty(), 360))
+            );
+            rotationTimeline.setCycleCount(Animation.INDEFINITE);
+        }
+
+        if (isAnimating) {
+            // Останавливаем анимацию
+            rotationTimeline.pause();
+            isAnimating = false;
+        } else {
+            // Запускаем анимацию
+            rotationTimeline.play();
+            isAnimating = true;
+        }
     }
 
     private HBox createCurveSelectionButtons() {
@@ -154,12 +170,14 @@ public class MainApplication extends Application {
         ToggleButton circleButton = new ToggleButton("Circles");
         ToggleButton ellipseButton = new ToggleButton("Ellipses");
         ToggleButton helixButton = new ToggleButton("Helix's");
+        ToggleButton animationButton = new ToggleButton("Start Animation"); // Изменено название
 
         ToggleGroup group = new ToggleGroup();
         allButton.setToggleGroup(group);
         circleButton.setToggleGroup(group);
         ellipseButton.setToggleGroup(group);
         helixButton.setToggleGroup(group);
+        animationButton.setToggleGroup(group);
 
         helixButton.setSelected(true);
 
@@ -168,7 +186,18 @@ public class MainApplication extends Application {
         ellipseButton.setOnAction(e -> showCurvesByType("Ellipse"));
         helixButton.setOnAction(e -> showCurvesByType("Helix"));
 
-        buttonBox.getChildren().addAll(allButton, circleButton, ellipseButton, helixButton);
+        // Исправленный обработчик для кнопки анимации:
+        animationButton.setOnAction(e -> {
+            toggleSceneAnimation();
+            // Обновляем текст кнопки в зависимости от состояния
+            if (isAnimating) {
+                animationButton.setText("Stop Animation");
+            } else {
+                animationButton.setText("Start Animation");
+            }
+        });
+
+        buttonBox.getChildren().addAll(allButton, circleButton, ellipseButton, helixButton, animationButton);
         return buttonBox;
     }
 
