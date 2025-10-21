@@ -71,8 +71,9 @@ public class MainApplication extends Application {
     private List<Curve3D> generateFixedCurves() {
         List<Curve3D> fixedCurves = new ArrayList<>();
 
+        // Добавляем по одному экземпляру каждого типа
         fixedCurves.add(new Circle(2.0));           // Круг с радиусом 2.0
-        fixedCurves.addAll(Ellipse.createSphere(2.0, 3)); // createSphere / createEllipse
+        fixedCurves.add(new Ellipse(2.0, 3.0));     // Эллипс с радиусами 2.0 и 3.0
         fixedCurves.add(new Helix(2.0, 1.0));       // Спираль с радиусом 2.0 и шагом 1.0
 
         return fixedCurves;
@@ -135,7 +136,7 @@ public class MainApplication extends Application {
 
         // Информация о количестве кривых
         Label infoLabel = new Label("Curves loaded: " + curves.size());
-        infoLabel.setStyle("-fx-font-size: 120px;");
+        infoLabel.setStyle("-fx-font-size: 12px;");
 
         VBox bottomBox = new VBox(buttonContainer, infoLabel);
         bottomBox.setPadding(new Insets(5));
@@ -327,7 +328,7 @@ public class MainApplication extends Application {
                 .filter(c -> c instanceof Circle)
                 .map(c -> (Circle) c)
                 .sorted(Comparator.comparingDouble(Circle::getRadius))
-                .toList();
+                .collect(Collectors.toList());
 
         double sumRadii = circles.stream().mapToDouble(Circle::getRadius).sum();
 
