@@ -43,18 +43,16 @@ public class MainApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        primaryStage.setTitle("3D Curve Analyzer");
         System.out.println("=== Curve Analyzer v1.0 ===");
 
-        primaryStage.setTitle("3D Curve Analyzer");
-
         // Генерируем кривые
-        curves = generateRandomCurves();
-
+        curves = generateFixedCurves();
         System.out.println("Generated " + curves.size() + " curves:");
         for (Curve3D c : curves)
             System.out.println(" - " + c.getClass().getSimpleName());
 
-        // Создаем TabPane
+        // Создаем TabPane (вкладки)
         TabPane tabPane = new TabPane();
         Tab visualizationTab = new Tab("3D Visualization", createVisualizationContent());
         Tab calculationsTab = new Tab("Calculations", createCalculationsContent());
@@ -69,6 +67,18 @@ public class MainApplication extends Application {
         primaryStage.show();
     }
 
+    // Метод для фиксированной генерации кривых при запуске
+    private List<Curve3D> generateFixedCurves() {
+        List<Curve3D> fixedCurves = new ArrayList<>();
+
+        fixedCurves.add(new Circle(2.0));           // Круг с радиусом 2.0
+        fixedCurves.addAll(Ellipse.createSphere(2.0, 3)); // createSphere / createEllipse
+        fixedCurves.add(new Helix(2.0, 1.0));       // Спираль с радиусом 2.0 и шагом 1.0
+
+        return fixedCurves;
+    }
+
+    // Метод для рандомной генерации кривых при запуске
     private List<Curve3D> generateRandomCurves() {
         Random rand = new Random();
         List<Curve3D> curves = new ArrayList<>();
@@ -125,7 +135,7 @@ public class MainApplication extends Application {
 
         // Информация о количестве кривых
         Label infoLabel = new Label("Curves loaded: " + curves.size());
-        infoLabel.setStyle("-fx-font-size: 12px;");
+        infoLabel.setStyle("-fx-font-size: 120px;");
 
         VBox bottomBox = new VBox(buttonContainer, infoLabel);
         bottomBox.setPadding(new Insets(5));
@@ -317,7 +327,7 @@ public class MainApplication extends Application {
                 .filter(c -> c instanceof Circle)
                 .map(c -> (Circle) c)
                 .sorted(Comparator.comparingDouble(Circle::getRadius))
-                .collect(Collectors.toList());
+                .toList();
 
         double sumRadii = circles.stream().mapToDouble(Circle::getRadius).sum();
 
