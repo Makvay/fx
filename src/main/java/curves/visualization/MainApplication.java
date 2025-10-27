@@ -18,6 +18,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -27,19 +28,21 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class MainApplication extends Application {
 
     private double cameraDistance = 200;
     private List<Curve3D> curves;
+    private final List<Curve3D> userCurves = new ArrayList<>(); // Отдельный список для пользовательских кривых
     private Group visualizationRoot;
     private PerspectiveCamera camera;
     private Rotate xRotate;
     private Rotate yRotate;
     private Timeline rotationTimeline;
     private boolean isAnimating = false;
+    private TableView<CalculationResult> resultsTable;
+    private Label infoLabel;
 
     @Override
     public void start(Stage primaryStage) {
@@ -56,10 +59,13 @@ public class MainApplication extends Application {
         TabPane tabPane = new TabPane();
         Tab visualizationTab = new Tab("3D Visualization", createVisualizationContent());
         Tab calculationsTab = new Tab("Calculations", createCalculationsContent());
+        Tab creationTab = new Tab("Create Curve", createCreationContent()); // Новая вкладка
+
         visualizationTab.setClosable(false);
         calculationsTab.setClosable(false);
+        creationTab.setClosable(false);
 
-        tabPane.getTabs().addAll(visualizationTab, calculationsTab);
+        tabPane.getTabs().addAll(visualizationTab, calculationsTab, creationTab);
 
         BorderPane mainLayout = new BorderPane(tabPane);
         Scene scene = new Scene(mainLayout, 1200, 800);
@@ -79,19 +85,12 @@ public class MainApplication extends Application {
         return fixedCurves;
     }
 
-    // Метод для рандомной генерации кривых при запуске
-    private List<Curve3D> generateRandomCurves() {
-        Random rand = new Random();
-        List<Curve3D> curves = new ArrayList<>();
-        for (int i = 0; i < 8; i++) {
-            int type = rand.nextInt(3);
-            switch (type) {
-                case 0 -> curves.add(new Circle(1 + rand.nextDouble() * 3));
-                case 1 -> curves.add(new Ellipse(1 + rand.nextDouble() * 2, 1 + rand.nextDouble() * 2));
-                case 2 -> curves.add(new Helix(1 + rand.nextDouble() * 2, 0.5 + rand.nextDouble() * 1.5));
-            }
-        }
-        return curves;
+    // Метод для получения всех кривых (исходные + пользовательские)
+    private List<Curve3D> getAllCurves() {
+        List<Curve3D> allCurves = new ArrayList<>();
+        allCurves.addAll(curves);
+        allCurves.addAll(userCurves);
+        return allCurves;
     }
 
     private BorderPane createVisualizationContent() {
@@ -122,29 +121,204 @@ public class MainApplication extends Application {
         // По умолчанию показываем спирали
         showCurvesByType("Helix");
 
-        // Добавляем оси координат (опционально)
+        // Добавляем оси координат (исправлено - теперь видимые)
         addCoordinateAxes(visualizationRoot);
 
         // Настройка управления
         setupMouseControl(group3DContainer, visualizationRoot);
         setupZoomControl(group3DContainer);
 
-        //  Выбор фона
+        // Выбор фона
         ColorPicker bgPicker = new ColorPicker(Color.WHITESMOKE);
         bgPicker.setOnAction(e -> subScene.setFill(bgPicker.getValue()));
         buttonContainer.getChildren().add(bgPicker);
 
         // Информация о количестве кривых
-        Label infoLabel = new Label("Curves loaded: " + curves.size());
+        infoLabel = new Label("Curves loaded: " + getAllCurves().size() + " (User: " + userCurves.size() + ")");
         infoLabel.setStyle("-fx-font-size: 12px;");
 
         VBox bottomBox = new VBox(buttonContainer, infoLabel);
         bottomBox.setPadding(new Insets(5));
         visualizationPane.setBottom(bottomBox);
 
-
         visualizationPane.setCenter(group3DContainer);
         return visualizationPane;
+    }
+
+    // НОВЫЙ МЕТОД: Создание интерфейса для добавления кривых
+    private BorderPane createCreationContent() {
+        BorderPane creationPane = new BorderPane();
+        creationPane.setPadding(new Insets(20));
+
+        Label titleLabel = new Label("Create Custom Curve");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        // Форма для ввода параметров
+        GridPane form = new GridPane();
+        form.setVgap(15);
+        form.setHgap(10);
+        form.setPadding(new Insets(20));
+
+        // Выбор типа кривой
+        Label typeLabel = new Label("Curve Type:");
+        ComboBox<String> typeComboBox = new ComboBox<>();
+        typeComboBox.getItems().addAll("Circle", "Ellipse", "Helix");
+        typeComboBox.setValue("Circle");
+
+        // Параметры
+        Label radiusLabel = new Label("Radius:");
+        TextField radiusField = new TextField("2.0");
+
+        Label radiusYLabel = new Label("Radius Y (for Ellipse):");
+        TextField radiusYField = new TextField("3.0");
+        radiusYLabel.setVisible(false);
+        radiusYField.setVisible(false);
+
+        Label stepLabel = new Label("Step (for Helix):");
+        TextField stepField = new TextField("1.0");
+        stepLabel.setVisible(false);
+        stepField.setVisible(false);
+
+        // Смещение (позиция)
+        Label offsetLabel = new Label("Position Offset:");
+        GridPane offsetPane = new GridPane();
+        offsetPane.setHgap(5);
+
+        Label xLabel = new Label("X:");
+        TextField xField = new TextField("0");
+        xField.setPrefWidth(60);
+
+        Label yLabel = new Label("Y:");
+        TextField yField = new TextField("0");
+        yField.setPrefWidth(60);
+
+        Label zLabel = new Label("Z:");
+        TextField zField = new TextField("0");
+        zField.setPrefWidth(60);
+
+        offsetPane.add(xLabel, 0, 0);
+        offsetPane.add(xField, 1, 0);
+        offsetPane.add(yLabel, 2, 0);
+        offsetPane.add(yField, 3, 0);
+        offsetPane.add(zLabel, 4, 0);
+        offsetPane.add(zField, 5, 0);
+
+        // Обработчик изменения типа кривой
+        typeComboBox.setOnAction(e -> {
+            String type = typeComboBox.getValue();
+            radiusYLabel.setVisible("Ellipse".equals(type));
+            radiusYField.setVisible("Ellipse".equals(type));
+            stepLabel.setVisible("Helix".equals(type));
+            stepField.setVisible("Helix".equals(type));
+        });
+
+        // Кнопка создания
+        Button createButton = new Button("Create Curve");
+        createButton.setStyle("-fx-font-size: 14px; -fx-padding: 8 15;");
+
+        Label statusLabel = new Label("");
+        statusLabel.setStyle("-fx-text-fill: green;");
+
+        // Добавление элементов в форму
+        form.add(typeLabel, 0, 0);
+        form.add(typeComboBox, 1, 0);
+        form.add(radiusLabel, 0, 1);
+        form.add(radiusField, 1, 1);
+        form.add(radiusYLabel, 0, 2);
+        form.add(radiusYField, 1, 2);
+        form.add(stepLabel, 0, 3);
+        form.add(stepField, 1, 3);
+        form.add(offsetLabel, 0, 4);
+        form.add(offsetPane, 1, 4);
+        form.add(createButton, 0, 5, 2, 1);
+        form.add(statusLabel, 0, 6, 2, 1);
+
+        // Обработчик кнопки создания
+        createButton.setOnAction(e -> {
+            try {
+                Curve3D newCurve = createCurveFromInput(
+                        typeComboBox.getValue(),
+                        radiusField.getText(),
+                        radiusYField.getText(),
+                        stepField.getText(),
+                        xField.getText(),
+                        yField.getText(),
+                        zField.getText()
+                );
+
+                userCurves.add(newCurve);
+                statusLabel.setText("✓ Curve created successfully!");
+                statusLabel.setStyle("-fx-text-fill: green;");
+
+                // Обновляем интерфейс
+                updateUIAfterCurveCreation();
+
+            } catch (Exception ex) {
+                statusLabel.setText("✗ Error: " + ex.getMessage());
+                statusLabel.setStyle("-fx-text-fill: red;");
+            }
+        });
+
+        // Инструкция
+        Label instruction = new Label(
+                """
+                        Instructions:
+                        • Select curve type and enter parameters
+                        • Use position offset to move the curve in 3D space
+                        • Created curves will appear in visualization and calculations tabs"""
+        );
+        instruction.setStyle("-fx-text-fill: gray; -fx-font-size: 12px;");
+        instruction.setPadding(new Insets(20, 0, 0, 0));
+
+        VBox content = new VBox(10, titleLabel, form, instruction);
+        creationPane.setCenter(content);
+
+        return creationPane;
+    }
+
+    // НОВЫЙ МЕТОД: Создание кривой на основе ввода пользователя
+    private Curve3D createCurveFromInput(String type, String radiusStr, String radiusYStr,
+                                         String stepStr, String xStr, String yStr, String zStr) {
+        double radius = Double.parseDouble(radiusStr);
+        double x = Double.parseDouble(xStr);
+        double y = Double.parseDouble(yStr);
+        double z = Double.parseDouble(zStr);
+
+        Curve3D baseCurve = switch (type) {
+            case "Circle" -> new Circle(radius);
+            case "Ellipse" -> {
+                double radiusY = Double.parseDouble(radiusYStr);
+                yield new Ellipse(radius, radiusY);
+            }
+            case "Helix" -> {
+                double step = Double.parseDouble(stepStr);
+                yield new Helix(radius, step);
+            }
+            default -> throw new IllegalArgumentException("Unknown curve type: " + type);
+        };
+
+        // Если есть смещение, оборачиваем в TranslatedCurve
+        if (x != 0 || y != 0 || z != 0) {
+            return new TranslatedCurve(baseCurve, new Point3D(x, y, z));
+        }
+
+        return baseCurve;
+    }
+
+    // НОВЫЙ МЕТОД: Обновление UI после создания кривой
+    private void updateUIAfterCurveCreation() {
+        // Обновляем label с количеством кривых
+        if (infoLabel != null) {
+            infoLabel.setText("Curves loaded: " + getAllCurves().size() + " (User: " + userCurves.size() + ")");
+        }
+
+        // Обновляем таблицу расчетов
+        if (resultsTable != null) {
+            updateResultsTable();
+        }
+
+        // Перерисовываем визуализацию, если сейчас отображаются "All Curves"
+        showCurvesByType("All");
     }
 
     private void toggleSceneAnimation() {
@@ -180,14 +354,14 @@ public class MainApplication extends Application {
         ToggleButton circleButton = new ToggleButton("Circles");
         ToggleButton ellipseButton = new ToggleButton("Ellipses");
         ToggleButton helixButton = new ToggleButton("Helix's");
-        ToggleButton animationButton = new ToggleButton("Start Animation"); // Изменено название
+        ToggleButton animationButton = new ToggleButton("Start Animation");
 
         ToggleGroup group = new ToggleGroup();
         allButton.setToggleGroup(group);
         circleButton.setToggleGroup(group);
         ellipseButton.setToggleGroup(group);
         helixButton.setToggleGroup(group);
-        animationButton.setToggleGroup(group);
+        animationButton.setToggleGroup(null); // Убираем из группы, чтобы не мешало
 
         helixButton.setSelected(true);
 
@@ -196,10 +370,8 @@ public class MainApplication extends Application {
         ellipseButton.setOnAction(e -> showCurvesByType("Ellipse"));
         helixButton.setOnAction(e -> showCurvesByType("Helix"));
 
-        // Исправленный обработчик для кнопки анимации:
         animationButton.setOnAction(e -> {
             toggleSceneAnimation();
-            // Обновляем текст кнопки в зависимости от состояния
             if (isAnimating) {
                 animationButton.setText("Stop Animation");
             } else {
@@ -216,9 +388,16 @@ public class MainApplication extends Application {
         addCoordinateAxes(visualizationRoot);
 
         Random rand = new Random();
-        for (Curve3D curve : curves) {
+        List<Curve3D> allCurves = getAllCurves();
+
+        for (Curve3D curve : allCurves) {
             String className = curve.getClass().getSimpleName();
-            if ("All".equals(curveType) || className.equals(curveType)) {
+            // Для TranslatedCurve проверяем внутреннюю кривую
+            String actualClassName = (curve instanceof TranslatedCurve)
+                    ? ((TranslatedCurve) curve).getBaseCurve().getClass().getSimpleName()
+                    : className;
+
+            if ("All".equals(curveType) || actualClassName.equals(curveType)) {
                 Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
                 for (double t = 0; t <= 4 * Math.PI; t += 0.05) {
                     Point3D point = curve.getPoint(t);
@@ -281,10 +460,10 @@ public class MainApplication extends Application {
         Label titleLabel = new Label("Curve Calculations at t=π/4");
         titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-        TableView<CalculationResult> table = createResultsTable();
+        resultsTable = createResultsTable();
         VBox circlesInfo = createCirclesInfo();
 
-        calculationsPane.getChildren().addAll(titleLabel, table, circlesInfo);
+        calculationsPane.getChildren().addAll(titleLabel, resultsTable, circlesInfo);
         return calculationsPane;
     }
 
@@ -303,18 +482,38 @@ public class MainApplication extends Application {
 
         table.getColumns().addAll(typeCol, pointCol, derivativeCol);
 
+        updateResultsTable(table);
+
+        table.setPrefHeight(300);
+        return table;
+    }
+
+    // НОВЫЙ МЕТОД: Обновление таблицы результатов
+    private void updateResultsTable(TableView<CalculationResult> table) {
+        double tCheck = Math.PI / 4;
         ObservableList<CalculationResult> data = FXCollections.observableArrayList();
-        for (Curve3D curve : curves) {
+
+        for (Curve3D curve : getAllCurves()) {
+            String curveName = curve.getClass().getSimpleName();
+            if (curve instanceof TranslatedCurve) {
+                curveName = "Translated " + ((TranslatedCurve) curve).getBaseCurve().getClass().getSimpleName();
+            }
+
             data.add(new CalculationResult(
-                    curve.getClass().getSimpleName(),
+                    curveName,
                     curve.getPoint(tCheck).toString(),
                     curve.getDerivative(tCheck).toString()
             ));
         }
 
         table.setItems(data);
-        table.setPrefHeight(300);
-        return table;
+    }
+
+    // Перегруженный метод для обновления существующей таблицы
+    private void updateResultsTable() {
+        if (resultsTable != null) {
+            updateResultsTable(resultsTable);
+        }
     }
 
     private VBox createCirclesInfo() {
@@ -324,11 +523,18 @@ public class MainApplication extends Application {
         Label circlesTitle = new Label("Circle Information:");
         circlesTitle.setStyle("-fx-font-weight: bold;");
 
-        List<Circle> circles = curves.stream()
-                .filter(c -> c instanceof Circle)
-                .map(c -> (Circle) c)
+        List<Circle> circles = getAllCurves().stream()
+                .filter(c -> c instanceof Circle || (c instanceof TranslatedCurve &&
+                        ((TranslatedCurve) c).getBaseCurve() instanceof Circle))
+                .map(c -> {
+                    if (c instanceof TranslatedCurve) {
+                        return (Circle) ((TranslatedCurve) c).getBaseCurve();
+                    } else {
+                        return (Circle) c;
+                    }
+                })
                 .sorted(Comparator.comparingDouble(Circle::getRadius))
-                .collect(Collectors.toList());
+                .toList();
 
         double sumRadii = circles.stream().mapToDouble(Circle::getRadius).sum();
 
@@ -347,33 +553,29 @@ public class MainApplication extends Application {
     private void addCoordinateAxes(Group root) {
         final double axisLength = 100;
 
-
-        javafx.scene.shape.Line xAxis = new javafx.scene.shape.Line();
+        javafx.scene.shape.Line xAxis = new javafx.scene.shape.Line(0, 0, axisLength, 0);
         xAxis.setStroke(Color.RED);
-        xAxis.setStrokeWidth(0);
+        xAxis.setStrokeWidth(2);
 
-
-        javafx.scene.shape.Line yAxis = new javafx.scene.shape.Line();
+        javafx.scene.shape.Line yAxis = new javafx.scene.shape.Line(0, 0, 0, axisLength);
         yAxis.setStroke(Color.GREEN);
-        yAxis.setStrokeWidth(0);
+        yAxis.setStrokeWidth(2);
 
-
-        javafx.scene.shape.Line zAxis = new javafx.scene.shape.Line();
+        javafx.scene.shape.Line zAxis = new javafx.scene.shape.Line(0, 0, 0, 0);
         zAxis.setStroke(Color.BLUE);
-        zAxis.setStrokeWidth(0);
-
+        zAxis.setStrokeWidth(2);
 
         javafx.scene.text.Text xLabel = new javafx.scene.text.Text("X");
         xLabel.setFill(Color.RED);
-        xLabel.setTranslateX(axisLength);
+        xLabel.setTranslateX(axisLength + 5);
 
         javafx.scene.text.Text yLabel = new javafx.scene.text.Text("Y");
         yLabel.setFill(Color.GREEN);
-        yLabel.setTranslateY(axisLength);
+        yLabel.setTranslateY(axisLength + 5);
 
         javafx.scene.text.Text zLabel = new javafx.scene.text.Text("Z");
         zLabel.setFill(Color.BLUE);
-        zLabel.setTranslateZ(axisLength );
+        zLabel.setTranslateZ(axisLength + 5);
 
         root.getChildren().addAll(xAxis, yAxis, zAxis, xLabel, yLabel, zLabel);
     }
