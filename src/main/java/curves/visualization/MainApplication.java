@@ -26,6 +26,8 @@ import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.scene.shape.Cylinder;
+import javafx.scene.paint.PhongMaterial;
 
 import java.util.*;
 
@@ -329,7 +331,7 @@ public class MainApplication extends Application {
 
             rotationTimeline = new Timeline(
                     new KeyFrame(Duration.seconds(0), new KeyValue(yRotate.angleProperty(), 0)),
-                    new KeyFrame(Duration.seconds(30), new KeyValue(yRotate.angleProperty(), 360))
+                    new KeyFrame(Duration.seconds(0.03), new KeyValue(yRotate.angleProperty(), 360))
             );
             rotationTimeline.setCycleCount(Animation.INDEFINITE);
         }
@@ -553,17 +555,18 @@ public class MainApplication extends Application {
     private void addCoordinateAxes(Group root) {
         final double axisLength = 100;
 
+        // Ось X (красная, 2D)
         javafx.scene.shape.Line xAxis = new javafx.scene.shape.Line(0, 0, axisLength, 0);
         xAxis.setStroke(Color.RED);
         xAxis.setStrokeWidth(2);
 
+        // Ось Y (зеленая, 2D)
         javafx.scene.shape.Line yAxis = new javafx.scene.shape.Line(0, 0, 0, axisLength);
         yAxis.setStroke(Color.GREEN);
         yAxis.setStrokeWidth(2);
 
-        javafx.scene.shape.Line zAxis = new javafx.scene.shape.Line(0, 0, 0, 0);
-        zAxis.setStroke(Color.BLUE);
-        zAxis.setStrokeWidth(2);
+        // Ось Z (синяя, 3D)
+        Group zAxisGroup = create3DArrow();
 
         javafx.scene.text.Text xLabel = new javafx.scene.text.Text("X");
         xLabel.setFill(Color.RED);
@@ -577,7 +580,27 @@ public class MainApplication extends Application {
         zLabel.setFill(Color.BLUE);
         zLabel.setTranslateZ(axisLength + 5);
 
-        root.getChildren().addAll(xAxis, yAxis, zAxis, xLabel, yLabel, zLabel);
+        root.getChildren().addAll(xAxis, yAxis, zAxisGroup, xLabel, yLabel, zLabel);
+    }
+
+    // Вспомогательный метод для создания 3D стрелки
+    private Group create3DArrow() {
+        Group arrowGroup = new Group();
+
+        javafx.scene.shape.Line zLine = new javafx.scene.shape.Line(0, 0, 0, 0);
+        zLine.setStroke(Color.BLUE);
+        zLine.setStrokeWidth(2);
+
+        Cylinder arrowHead = new Cylinder(2, 100);
+        arrowHead.setMaterial(new PhongMaterial(Color.BLUE));
+
+        arrowHead.setTranslateZ(50);
+        arrowHead.setRotationAxis(Rotate.X_AXIS);
+        arrowHead.setRotate(90);
+
+        arrowGroup.getChildren().addAll(zLine, arrowHead);
+
+        return arrowGroup;
     }
 
     public static class CalculationResult {
