@@ -1,3 +1,4 @@
+// Обновленный файл: MainApplication.java
 package curves.visualization;
 
 import curves.*;
@@ -48,8 +49,8 @@ public class MainApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("3D Curve Analyzer");
-        System.out.println("=== Curve Analyzer v1.0 ===");
+        primaryStage.setTitle("3D Curve Analyzer with Rotation");
+        System.out.println("=== Curve Analyzer v2.0 ===");
 
         // Генерируем кривые
         curves = generateFixedCurves();
@@ -61,7 +62,7 @@ public class MainApplication extends Application {
         TabPane tabPane = new TabPane();
         Tab visualizationTab = new Tab("3D Visualization", createVisualizationContent());
         Tab calculationsTab = new Tab("Calculations", createCalculationsContent());
-        Tab creationTab = new Tab("Create Curve", createCreationContent()); // Новая вкладка
+        Tab creationTab = new Tab("Create Curve", createCreationContent());
 
         visualizationTab.setClosable(false);
         calculationsTab.setClosable(false);
@@ -123,7 +124,7 @@ public class MainApplication extends Application {
         // По умолчанию показываем спирали
         showCurvesByType("Helix");
 
-        // Добавляем оси координат (исправлено - теперь видимые)
+        // Добавляем оси координат
         addCoordinateAxes(visualizationRoot);
 
         // Настройка управления
@@ -147,7 +148,7 @@ public class MainApplication extends Application {
         return visualizationPane;
     }
 
-    // НОВЫЙ МЕТОД: Создание интерфейса для добавления кривых
+    // ОБНОВЛЕННЫЙ МЕТОД: Создание интерфейса для добавления кривых с поворотом
     private BorderPane createCreationContent() {
         BorderPane creationPane = new BorderPane();
         creationPane.setPadding(new Insets(20));
@@ -205,6 +206,52 @@ public class MainApplication extends Application {
         offsetPane.add(zLabel, 4, 0);
         offsetPane.add(zField, 5, 0);
 
+        // НОВОЕ: Поворот
+        Label rotationLabel = new Label("Rotation:");
+        GridPane rotationPane = new GridPane();
+        rotationPane.setHgap(5);
+
+        Label axisLabel = new Label("Axis:");
+        ComboBox<String> axisComboBox = new ComboBox<>();
+        axisComboBox.getItems().addAll("X", "Y", "Z", "Custom");
+        axisComboBox.setValue("X");
+
+        Label angleLabel = new Label("Angle (degrees):");
+        TextField angleField = new TextField("0");
+        angleField.setPrefWidth(80);
+
+        // Поля для пользовательской оси
+        Label customAxisLabel = new Label("Custom Axis:");
+        GridPane customAxisPane = new GridPane();
+        customAxisPane.setHgap(5);
+
+        Label cxLabel = new Label("X:");
+        TextField cxField = new TextField("1");
+        cxField.setPrefWidth(50);
+
+        Label cyLabel = new Label("Y:");
+        TextField cyField = new TextField("0");
+        cyField.setPrefWidth(50);
+
+        Label czLabel = new Label("Z:");
+        TextField czField = new TextField("0");
+        czField.setPrefWidth(50);
+
+        customAxisPane.add(cxLabel, 0, 0);
+        customAxisPane.add(cxField, 1, 0);
+        customAxisPane.add(cyLabel, 2, 0);
+        customAxisPane.add(cyField, 3, 0);
+        customAxisPane.add(czLabel, 4, 0);
+        customAxisPane.add(czField, 5, 0);
+        customAxisPane.setVisible(false);
+
+        rotationPane.add(axisLabel, 0, 0);
+        rotationPane.add(axisComboBox, 1, 0);
+        rotationPane.add(angleLabel, 2, 0);
+        rotationPane.add(angleField, 3, 0);
+        rotationPane.add(customAxisLabel, 0, 1);
+        rotationPane.add(customAxisPane, 1, 1, 4, 1);
+
         // Обработчик изменения типа кривой
         typeComboBox.setOnAction(e -> {
             String type = typeComboBox.getValue();
@@ -212,6 +259,12 @@ public class MainApplication extends Application {
             radiusYField.setVisible("Ellipse".equals(type));
             stepLabel.setVisible("Helix".equals(type));
             stepField.setVisible("Helix".equals(type));
+        });
+
+        // Обработчик изменения оси вращения
+        axisComboBox.setOnAction(e -> {
+            boolean isCustom = "Custom".equals(axisComboBox.getValue());
+            customAxisPane.setVisible(isCustom);
         });
 
         // Кнопка создания
@@ -222,18 +275,21 @@ public class MainApplication extends Application {
         statusLabel.setStyle("-fx-text-fill: green;");
 
         // Добавление элементов в форму
-        form.add(typeLabel, 0, 0);
-        form.add(typeComboBox, 1, 0);
-        form.add(radiusLabel, 0, 1);
-        form.add(radiusField, 1, 1);
-        form.add(radiusYLabel, 0, 2);
-        form.add(radiusYField, 1, 2);
-        form.add(stepLabel, 0, 3);
-        form.add(stepField, 1, 3);
-        form.add(offsetLabel, 0, 4);
-        form.add(offsetPane, 1, 4);
-        form.add(createButton, 0, 5, 2, 1);
-        form.add(statusLabel, 0, 6, 2, 1);
+        int row = 0;
+        form.add(typeLabel, 0, row);
+        form.add(typeComboBox, 1, row++);
+        form.add(radiusLabel, 0, row);
+        form.add(radiusField, 1, row++);
+        form.add(radiusYLabel, 0, row);
+        form.add(radiusYField, 1, row++);
+        form.add(stepLabel, 0, row);
+        form.add(stepField, 1, row++);
+        form.add(offsetLabel, 0, row);
+        form.add(offsetPane, 1, row++);
+        form.add(rotationLabel, 0, row);
+        form.add(rotationPane, 1, row++);
+        form.add(createButton, 0, row, 2, 1);
+        form.add(statusLabel, 0, ++row, 2, 1);
 
         // Обработчик кнопки создания
         createButton.setOnAction(e -> {
@@ -245,7 +301,12 @@ public class MainApplication extends Application {
                         stepField.getText(),
                         xField.getText(),
                         yField.getText(),
-                        zField.getText()
+                        zField.getText(),
+                        axisComboBox.getValue(),
+                        angleField.getText(),
+                        cxField.getText(),
+                        cyField.getText(),
+                        czField.getText()
                 );
 
                 userCurves.add(newCurve);
@@ -267,6 +328,7 @@ public class MainApplication extends Application {
                         Instructions:
                         • Select curve type and enter parameters
                         • Use position offset to move the curve in 3D space
+                        • Use rotation to rotate the curve around specified axis
                         • Created curves will appear in visualization and calculations tabs"""
         );
         instruction.setStyle("-fx-text-fill: gray; -fx-font-size: 12px;");
@@ -278,13 +340,17 @@ public class MainApplication extends Application {
         return creationPane;
     }
 
-    // НОВЫЙ МЕТОД: Создание кривой на основе ввода пользователя
+    // ОБНОВЛЕННЫЙ МЕТОД: Создание кривой на основе ввода пользователя с поворотом
     private Curve3D createCurveFromInput(String type, String radiusStr, String radiusYStr,
-                                         String stepStr, String xStr, String yStr, String zStr) {
+                                         String stepStr, String xStr, String yStr, String zStr,
+                                         String axisType, String angleStr, String customXStr,
+                                         String customYStr, String customZStr) {
         double radius = Double.parseDouble(radiusStr);
         double x = Double.parseDouble(xStr);
         double y = Double.parseDouble(yStr);
         double z = Double.parseDouble(zStr);
+        double angleDegrees = Double.parseDouble(angleStr);
+        double angleRadians = Math.toRadians(angleDegrees);
 
         Curve3D baseCurve = switch (type) {
             case "Circle" -> new Circle(radius);
@@ -299,12 +365,34 @@ public class MainApplication extends Application {
             default -> throw new IllegalArgumentException("Unknown curve type: " + type);
         };
 
-        // Если есть смещение, оборачиваем в TranslatedCurve
+        // Применяем поворот если угол не нулевой
+        if (angleDegrees != 0) {
+            Point3D rotationAxis = getRotationAxis(axisType, customXStr, customYStr, customZStr);
+            baseCurve = new RotatedCurve(baseCurve, rotationAxis, angleRadians);
+        }
+
+        // Применяем смещение если нужно
         if (x != 0 || y != 0 || z != 0) {
-            return new TranslatedCurve(baseCurve, new Point3D(x, y, z));
+            baseCurve = new TranslatedCurve(baseCurve, new Point3D(x, y, z));
         }
 
         return baseCurve;
+    }
+
+    // НОВЫЙ МЕТОД: Получение оси вращения
+    private Point3D getRotationAxis(String axisType, String customXStr, String customYStr, String customZStr) {
+        return switch (axisType) {
+            case "X" -> new Point3D(1, 0, 0);
+            case "Y" -> new Point3D(0, 1, 0);
+            case "Z" -> new Point3D(0, 0, 1);
+            case "Custom" -> {
+                double cx = Double.parseDouble(customXStr);
+                double cy = Double.parseDouble(customYStr);
+                double cz = Double.parseDouble(customZStr);
+                yield new Point3D(cx, cy, cz).normalize();
+            }
+            default -> throw new IllegalArgumentException("Unknown axis type: " + axisType);
+        };
     }
 
     // НОВЫЙ МЕТОД: Обновление UI после создания кривой
@@ -393,11 +481,7 @@ public class MainApplication extends Application {
         List<Curve3D> allCurves = getAllCurves();
 
         for (Curve3D curve : allCurves) {
-            String className = curve.getClass().getSimpleName();
-            // Для TranslatedCurve проверяем внутреннюю кривую
-            String actualClassName = (curve instanceof TranslatedCurve)
-                    ? ((TranslatedCurve) curve).getBaseCurve().getClass().getSimpleName()
-                    : className;
+            String actualClassName = getActualCurveType(curve);
 
             if ("All".equals(curveType) || actualClassName.equals(curveType)) {
                 Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
@@ -411,6 +495,17 @@ public class MainApplication extends Application {
                     visualizationRoot.getChildren().add(dot);
                 }
             }
+        }
+    }
+
+    // НОВЫЙ МЕТОД: Получение реального типа кривой (с учетом декораторов)
+    private String getActualCurveType(Curve3D curve) {
+        if (curve instanceof TranslatedCurve) {
+            return getActualCurveType(((TranslatedCurve) curve).getBaseCurve());
+        } else if (curve instanceof RotatedCurve) {
+            return getActualCurveType(((RotatedCurve) curve).getBaseCurve());
+        } else {
+            return curve.getClass().getSimpleName();
         }
     }
 
@@ -490,16 +585,13 @@ public class MainApplication extends Application {
         return table;
     }
 
-    // НОВЫЙ МЕТОД: Обновление таблицы результатов
+    // ОБНОВЛЕННЫЙ МЕТОД: Обновление таблицы результатов
     private void updateResultsTable(TableView<CalculationResult> table) {
         double tCheck = Math.PI / 4;
         ObservableList<CalculationResult> data = FXCollections.observableArrayList();
 
         for (Curve3D curve : getAllCurves()) {
-            String curveName = curve.getClass().getSimpleName();
-            if (curve instanceof TranslatedCurve) {
-                curveName = "Translated " + ((TranslatedCurve) curve).getBaseCurve().getClass().getSimpleName();
-            }
+            String curveName = getCurveDisplayName(curve);
 
             data.add(new CalculationResult(
                     curveName,
@@ -509,6 +601,24 @@ public class MainApplication extends Application {
         }
 
         table.setItems(data);
+    }
+
+    // НОВЫЙ МЕТОД: Получение отображаемого имени кривой
+    private String getCurveDisplayName(Curve3D curve) {
+        if (curve instanceof TranslatedCurve) {
+            TranslatedCurve tc = (TranslatedCurve) curve;
+            Point3D offset = tc.getOffset();
+            return String.format("Translated %s (%.1f,%.1f,%.1f)",
+                    getCurveDisplayName(tc.getBaseCurve()), offset.getX(), offset.getY(), offset.getZ());
+        } else if (curve instanceof RotatedCurve) {
+            RotatedCurve rc = (RotatedCurve) curve;
+            Point3D axis = rc.getRotationAxis();
+            double angle = Math.toDegrees(rc.getRotationAngle());
+            return String.format("Rotated %s (%.0f° around %.1f,%.1f,%.1f)",
+                    getCurveDisplayName(rc.getBaseCurve()), angle, axis.getX(), axis.getY(), axis.getZ());
+        } else {
+            return curve.getClass().getSimpleName();
+        }
     }
 
     // Перегруженный метод для обновления существующей таблицы
@@ -526,15 +636,22 @@ public class MainApplication extends Application {
         circlesTitle.setStyle("-fx-font-weight: bold;");
 
         List<Circle> circles = getAllCurves().stream()
-                .filter(c -> c instanceof Circle || (c instanceof TranslatedCurve &&
-                        ((TranslatedCurve) c).getBaseCurve() instanceof Circle))
+                .filter(c -> getActualCurveType(c).equals("Circle"))
                 .map(c -> {
-                    if (c instanceof TranslatedCurve) {
-                        return (Circle) ((TranslatedCurve) c).getBaseCurve();
-                    } else {
-                        return (Circle) c;
+                    // Извлекаем Circle из декораторов
+                    Curve3D base = c;
+                    while (!(base instanceof Circle)) {
+                        if (base instanceof TranslatedCurve) {
+                            base = ((TranslatedCurve) base).getBaseCurve();
+                        } else if (base instanceof RotatedCurve) {
+                            base = ((RotatedCurve) base).getBaseCurve();
+                        } else {
+                            break;
+                        }
                     }
+                    return (Circle) base;
                 })
+                .filter(Objects::nonNull)
                 .sorted(Comparator.comparingDouble(Circle::getRadius))
                 .toList();
 
