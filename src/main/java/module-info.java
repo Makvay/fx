@@ -15,4 +15,8 @@ module org.example.fx {
     // Открываем пакеты для FXML инъекции
     opens curves.visualization to javafx.fxml;
     opens curves to javafx.fxml;
+    exports curves.figures;
+    opens curves.figures to javafx.fxml;
+    exports curves.properties;
+    opens curves.properties to javafx.fxml;
 }

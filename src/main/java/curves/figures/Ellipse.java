@@ -1,5 +1,6 @@
-package curves;
+package curves.figures;
 
+import curves.Curve3D;
 import javafx.geometry.Point3D;
 
 public class Ellipse extends Curve3D {

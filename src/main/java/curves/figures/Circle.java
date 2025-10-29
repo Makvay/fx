@@ -1,12 +1,14 @@
-package curves;
+package curves.figures;
 
+import curves.Curve3D;
 import javafx.geometry.Point3D;
+
 
 public class Circle extends Curve3D {
     private final double radius;
 
     public Circle(double radius) {
-        if (radius <= 0) throw new IllegalArgumentException("Радиус должен быть положительным");
+        if (radius <= 0) throw new IllegalArgumentException("Radius must be positive");
         this.radius = radius;
     }
 

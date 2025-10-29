@@ -1,6 +1,8 @@
-package curves;
+package curves.properties;
 
+import curves.Curve3D;
 import javafx.geometry.Point3D;
+
 
 public class TranslatedCurve extends Curve3D {
     private final Curve3D baseCurve;
@@ -11,13 +13,8 @@ public class TranslatedCurve extends Curve3D {
         this.offset = offset;
     }
 
-    public Curve3D getBaseCurve() {
-        return baseCurve;
-    }
-
-    public Point3D getOffset() {
-        return offset;
-    }
+    public Curve3D getBaseCurve() { return baseCurve; }
+    public Point3D getOffset() { return offset; }
 
     @Override
     public Point3D getPoint(double t) {
@@ -31,7 +28,6 @@ public class TranslatedCurve extends Curve3D {
 
     @Override
     public Point3D getDerivative(double t) {
-        // Производная не меняется при смещении
         return baseCurve.getDerivative(t);
     }
 }
