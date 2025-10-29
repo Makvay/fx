@@ -1,4 +1,3 @@
-// Обновленный файл: MainApplication.java
 package curves.visualization;
 
 import curves.*;
@@ -33,6 +32,10 @@ import javafx.scene.paint.PhongMaterial;
 import java.util.*;
 
 
+/**
+ * ВСЕ ИСПОЛЬЗУЕМЫЕ КРИВЫЕ СООТВЕТСТВУЮТ ТРЕБОВАНИЮ:
+ * возвращают трёхмерную точку и первую производную для каждого параметра t вдоль кривой.
+ */
 public class MainApplication extends Application {
 
     private double cameraDistance = 200;
@@ -115,11 +118,11 @@ public class MainApplication extends Application {
 
         HBox buttonContainer = createCurveSelectionButtons();
 
-        // Подсказка управления
-        Label hint = new Label("💡 Hold left mouse button to rotate, scroll to zoom");
-        hint.setStyle("-fx-text-fill: gray; -fx-font-size: 12px; -fx-alignment: center;");
-        visualizationPane.setTop(hint);
-        BorderPane.setMargin(hint, new Insets(5, 0, 0, 0));
+        // ЗАМЕНА: Вместо подсказки управления - отображение координат
+        infoLabel = new Label("Hover over any point to see coordinates");
+        infoLabel.setStyle("-fx-text-fill: black; -fx-font-size: 14px; -fx-font-weight: bold; -fx-alignment: center;");
+        visualizationPane.setTop(infoLabel);
+        BorderPane.setMargin(infoLabel, new Insets(10, 0, 5, 0));
 
         // По умолчанию показываем спирали
         showCurvesByType("Helix");
@@ -136,11 +139,11 @@ public class MainApplication extends Application {
         bgPicker.setOnAction(e -> subScene.setFill(bgPicker.getValue()));
         buttonContainer.getChildren().add(bgPicker);
 
-        // Информация о количестве кривых
-        infoLabel = new Label("Curves loaded: " + getAllCurves().size() + " (User: " + userCurves.size() + ")");
-        infoLabel.setStyle("-fx-font-size: 12px;");
+        // Информация о количестве кривых (перемещаем вниз)
+        Label curvesCountLabel = new Label("Curves loaded: " + getAllCurves().size() + " (User: " + userCurves.size() + ")");
+        curvesCountLabel.setStyle("-fx-font-size: 12px;");
 
-        VBox bottomBox = new VBox(buttonContainer, infoLabel);
+        VBox bottomBox = new VBox(buttonContainer, curvesCountLabel);
         bottomBox.setPadding(new Insets(5));
         visualizationPane.setBottom(bottomBox);
 
@@ -148,7 +151,7 @@ public class MainApplication extends Application {
         return visualizationPane;
     }
 
-    // ОБНОВЛЕННЫЙ МЕТОД: Создание интерфейса для добавления кривых с поворотом
+    // Создание интерфейса для добавления кривых с поворотом
     private BorderPane createCreationContent() {
         BorderPane creationPane = new BorderPane();
         creationPane.setPadding(new Insets(20));
@@ -340,7 +343,7 @@ public class MainApplication extends Application {
         return creationPane;
     }
 
-    // ОБНОВЛЕННЫЙ МЕТОД: Создание кривой на основе ввода пользователя с поворотом
+    //  Создание кривой на основе ввода пользователя с поворотом
     private Curve3D createCurveFromInput(String type, String radiusStr, String radiusYStr,
                                          String stepStr, String xStr, String yStr, String zStr,
                                          String axisType, String angleStr, String customXStr,
@@ -379,7 +382,7 @@ public class MainApplication extends Application {
         return baseCurve;
     }
 
-    // НОВЫЙ МЕТОД: Получение оси вращения
+    //  Получение оси вращения
     private Point3D getRotationAxis(String axisType, String customXStr, String customYStr, String customZStr) {
         return switch (axisType) {
             case "X" -> new Point3D(1, 0, 0);
@@ -399,16 +402,8 @@ public class MainApplication extends Application {
     private void updateUIAfterCurveCreation() {
         // Обновляем label с количеством кривых
         if (infoLabel != null) {
-            infoLabel.setText("Curves loaded: " + getAllCurves().size() + " (User: " + userCurves.size() + ")");
+            infoLabel.setText("Hover over any point to see coordinates");
         }
-
-        // Обновляем таблицу расчетов
-        if (resultsTable != null) {
-            updateResultsTable();
-        }
-
-        // Перерисовываем визуализацию, если сейчас отображаются "All Curves"
-        showCurvesByType("All");
     }
 
     private void toggleSceneAnimation() {
@@ -485,20 +480,41 @@ public class MainApplication extends Application {
 
             if ("All".equals(curveType) || actualClassName.equals(curveType)) {
                 Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
+
                 for (double t = 0; t <= 4 * Math.PI; t += 0.05) {
                     Point3D point = curve.getPoint(t);
-                    Sphere dot = new Sphere(0.8);
+                    Point3D derivative = curve.getDerivative(t);
+
+                    Sphere dot = new Sphere(2.0); // увеличиваем размер
                     dot.setTranslateX(point.getX() * 15);
                     dot.setTranslateY(point.getY() * 15);
                     dot.setTranslateZ(point.getZ() * 15);
-                    dot.setMaterial(new javafx.scene.paint.PhongMaterial(curveColor));
+                    dot.setMaterial(new PhongMaterial(curveColor));
+                    dot.setPickOnBounds(true); // для корректного наведения
+
+                    final double finalT = t;
+                    final Point3D finalPoint = point;
+                    final Point3D finalDerivative = derivative;
+                    final String finalClassName = actualClassName;
+
+                    dot.setOnMouseEntered(event -> infoLabel.setText(String.format(
+                            "%s | t = %.2f | Point: (%.2f, %.2f, %.2f)",
+                            finalClassName, finalT,
+                            finalPoint.getX(), finalPoint.getY(), finalPoint.getZ(),
+                            finalDerivative.getX(), finalDerivative.getY(), finalDerivative.getZ()
+                    )));
+
+                    dot.setOnMouseExited(event -> infoLabel.setText(
+                            "Hover over any point to see coordinates"
+                    ));
+
                     visualizationRoot.getChildren().add(dot);
                 }
             }
         }
     }
 
-    // НОВЫЙ МЕТОД: Получение реального типа кривой (с учетом декораторов)
+    // Получение реального типа кривой (с учетом декораторов)
     private String getActualCurveType(Curve3D curve) {
         if (curve instanceof TranslatedCurve) {
             return getActualCurveType(((TranslatedCurve) curve).getBaseCurve());
@@ -585,7 +601,7 @@ public class MainApplication extends Application {
         return table;
     }
 
-    // ОБНОВЛЕННЫЙ МЕТОД: Обновление таблицы результатов
+    // Обновление таблицы результатов
     private void updateResultsTable(TableView<CalculationResult> table) {
         double tCheck = Math.PI / 4;
         ObservableList<CalculationResult> data = FXCollections.observableArrayList();
@@ -603,7 +619,7 @@ public class MainApplication extends Application {
         table.setItems(data);
     }
 
-    // НОВЫЙ МЕТОД: Получение отображаемого имени кривой
+    //  Получение отображаемого имени кривой
     private String getCurveDisplayName(Curve3D curve) {
         if (curve instanceof TranslatedCurve) {
             TranslatedCurve tc = (TranslatedCurve) curve;
