@@ -32,10 +32,6 @@ import javafx.scene.paint.PhongMaterial;
 import java.util.*;
 
 
-/**
- * ВСЕ ИСПОЛЬЗУЕМЫЕ КРИВЫЕ СООТВЕТСТВУЮТ ТРЕБОВАНИЮ:
- * возвращают трёхмерную точку и первую производную для каждого параметра t вдоль кривой.
- */
 public class MainApplication extends Application {
 
     private double cameraDistance = 200;
@@ -47,7 +43,6 @@ public class MainApplication extends Application {
     private Rotate yRotate;
     private Timeline rotationTimeline;
     private boolean isAnimating = false;
-    private TableView<CalculationResult> resultsTable;
     private Label infoLabel;
 
     @Override
@@ -74,7 +69,7 @@ public class MainApplication extends Application {
         tabPane.getTabs().addAll(visualizationTab, calculationsTab, creationTab);
 
         BorderPane mainLayout = new BorderPane(tabPane);
-        Scene scene = new Scene(mainLayout, 1200, 800);
+        Scene scene = new Scene(mainLayout, 1200, 840);
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -118,7 +113,7 @@ public class MainApplication extends Application {
 
         HBox buttonContainer = createCurveSelectionButtons();
 
-        // ЗАМЕНА: Вместо подсказки управления - отображение координат
+        // отображение координат
         infoLabel = new Label("Hover over any point to see coordinates");
         infoLabel.setStyle("-fx-text-fill: black; -fx-font-size: 14px; -fx-font-weight: bold; -fx-alignment: center;");
         visualizationPane.setTop(infoLabel);
@@ -398,9 +393,8 @@ public class MainApplication extends Application {
         };
     }
 
-    // НОВЫЙ МЕТОД: Обновление UI после создания кривой
+    // Обновление UI после создания кривой
     private void updateUIAfterCurveCreation() {
-        // Обновляем label с количеством кривых
         if (infoLabel != null) {
             infoLabel.setText("Hover over any point to see coordinates");
         }
@@ -481,11 +475,11 @@ public class MainApplication extends Application {
             if ("All".equals(curveType) || actualClassName.equals(curveType)) {
                 Color curveColor = Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
 
-                for (double t = 0; t <= 4 * Math.PI; t += 0.05) {
+                for (double t = 0; t <= 4 * Math.PI; t += 0.07) {
                     Point3D point = curve.getPoint(t);
                     Point3D derivative = curve.getDerivative(t);
 
-                    Sphere dot = new Sphere(2.0); // увеличиваем размер
+                    Sphere dot = new Sphere(2.0); // размер
                     dot.setTranslateX(point.getX() * 15);
                     dot.setTranslateY(point.getY() * 15);
                     dot.setTranslateZ(point.getZ() * 15);
@@ -573,8 +567,8 @@ public class MainApplication extends Application {
         Label titleLabel = new Label("Curve Calculations at t=π/4");
         titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-        resultsTable = createResultsTable();
-        VBox circlesInfo = createCirclesInfo();
+        TableView<CalculationResult> resultsTable = createResultsTable();
+        VBox circlesInfo = createCirclesInfo(); // Задачи 4, 5, 6
 
         calculationsPane.getChildren().addAll(titleLabel, resultsTable, circlesInfo);
         return calculationsPane;
@@ -582,7 +576,6 @@ public class MainApplication extends Application {
 
     private TableView<CalculationResult> createResultsTable() {
         TableView<CalculationResult> table = new TableView<>();
-        double tCheck = Math.PI / 4;
 
         TableColumn<CalculationResult, String> typeCol = new TableColumn<>("Type");
         typeCol.setCellValueFactory(new PropertyValueFactory<>("type"));
@@ -621,13 +614,11 @@ public class MainApplication extends Application {
 
     //  Получение отображаемого имени кривой
     private String getCurveDisplayName(Curve3D curve) {
-        if (curve instanceof TranslatedCurve) {
-            TranslatedCurve tc = (TranslatedCurve) curve;
+        if (curve instanceof TranslatedCurve tc) {
             Point3D offset = tc.getOffset();
             return String.format("Translated %s (%.1f,%.1f,%.1f)",
                     getCurveDisplayName(tc.getBaseCurve()), offset.getX(), offset.getY(), offset.getZ());
-        } else if (curve instanceof RotatedCurve) {
-            RotatedCurve rc = (RotatedCurve) curve;
+        } else if (curve instanceof RotatedCurve rc) {
             Point3D axis = rc.getRotationAxis();
             double angle = Math.toDegrees(rc.getRotationAngle());
             return String.format("Rotated %s (%.0f° around %.1f,%.1f,%.1f)",
@@ -637,13 +628,7 @@ public class MainApplication extends Application {
         }
     }
 
-    // Перегруженный метод для обновления существующей таблицы
-    private void updateResultsTable() {
-        if (resultsTable != null) {
-            updateResultsTable(resultsTable);
-        }
-    }
-
+    // Задачи 4, 5, 6
     private VBox createCirclesInfo() {
         VBox box = new VBox(5);
         box.setPadding(new Insets(10, 0, 0, 0));
@@ -699,7 +684,7 @@ public class MainApplication extends Application {
         yAxis.setStrokeWidth(2);
 
         // Ось Z (синяя, 3D)
-        Group zAxisGroup = create3DArrow();
+        Group zAxisGroup = create3DLineZ();
 
         javafx.scene.text.Text xLabel = new javafx.scene.text.Text("X");
         xLabel.setFill(Color.RED);
@@ -716,8 +701,8 @@ public class MainApplication extends Application {
         root.getChildren().addAll(xAxis, yAxis, zAxisGroup, xLabel, yLabel, zLabel);
     }
 
-    // Вспомогательный метод для создания 3D стрелки
-    private Group create3DArrow() {
+    // Вспомогательный метод для создания 3D линии
+    private Group create3DLineZ() {
         Group arrowGroup = new Group();
 
         javafx.scene.shape.Line zLine = new javafx.scene.shape.Line(0, 0, 0, 0);
@@ -750,6 +735,7 @@ public class MainApplication extends Application {
         public String getPoint() { return point; }
         public String getDerivative() { return derivative; }
     }
+
 
     private static class Group3DContainer extends BorderPane {
         private final SubScene subScene;

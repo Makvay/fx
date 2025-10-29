@@ -38,7 +38,6 @@ public class RotatedCurve extends Curve3D {
     }
 
     private Point3D rotatePoint(Point3D point, Point3D axis, double angle) {
-        // Формула поворота Родригеса
         double cos = Math.cos(angle);
         double sin = Math.sin(angle);
         double dot = point.dotProduct(axis);
