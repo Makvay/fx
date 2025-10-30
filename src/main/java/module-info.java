@@ -7,6 +7,7 @@ module org.example.fx {
     requires com.dlsc.formsfx;
     requires org.kordamp.bootstrapfx.core;
     requires com.almasb.fxgl.all;
+    requires javafx.media;
 
     // Экспортируем основные пакеты
     exports curves.visualization;

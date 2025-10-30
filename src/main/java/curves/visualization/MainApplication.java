@@ -19,11 +19,14 @@ import javafx.scene.SubScene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.io.File;
 import java.util.*;
 
 public class MainApplication extends Application {
@@ -104,10 +107,34 @@ public class MainApplication extends Application {
 
         helixBtn.setSelected(true);
 
-        Button animationBtn = new Button("Start Animation");
-        animationBtn.setOnAction(e -> toggleAnimation(animationBtn));
 
-        box.getChildren().addAll(allBtn, circleBtn, ellipseBtn, helixBtn, animationBtn);
+        Label volumeLabel = new Label("Volume:");
+        Slider volumeSlider = new Slider(0, 1, 0.7);
+        volumeSlider.setPrefWidth(100);
+
+        volumeLabel.setVisible(false);
+        volumeSlider.setVisible(false);
+
+        // начальная громкость
+        SoundManager.getInstance().setVolume(0.7);
+
+        // Обработчик изменения громкости
+        volumeSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+            SoundManager.getInstance().setVolume(newValue.doubleValue());
+        });
+
+
+        Button animationBtn = new Button("Start Animation");
+        animationBtn.setOnAction(e -> {
+            toggleAnimation(animationBtn);
+            boolean showVolume = isAnimating; // видимость элементов громкости
+            volumeLabel.setVisible(showVolume);
+            volumeSlider.setVisible(showVolume);
+        });
+
+
+        box.getChildren().addAll(allBtn, circleBtn, ellipseBtn, helixBtn, animationBtn,
+                volumeLabel, volumeSlider);
         return box;
     }
 
@@ -118,6 +145,8 @@ public class MainApplication extends Application {
     }
 
     private void toggleAnimation(Button btn) {
+        SoundManager soundManager = SoundManager.getInstance();
+
         if (rotationTimeline == null) {
             Rotate xRotate = visualizer.getXRotate();
             Rotate yRotate = visualizer.getYRotate();
@@ -130,12 +159,15 @@ public class MainApplication extends Application {
             );
             rotationTimeline.setCycleCount(Animation.INDEFINITE);
         }
-
         if (isAnimating) {
+            // Останавливаем анимацию и звук
             rotationTimeline.pause();
+            soundManager.pauseSound();
             btn.setText("Start Animation");
         } else {
+            // Запускаем анимацию и звук
             rotationTimeline.play();
+            soundManager.playSound();
             btn.setText("Stop Animation");
         }
         isAnimating = !isAnimating;
